@@ -56,7 +56,7 @@ class User(SQLModel, table=True):
     connection_timestamp: datetime = Field(nullable=True)
     plan_id: Optional[int] = Field(default=None, foreign_key="plan.id")
     plan: Optional["Plan"] = Relationship(back_populates="users")
-    assets: List["Asset"] = Relationship(back_populates="owner")
+    assets: List["Asset"] = Relationship(back_populates="owner", cascade_delete=True)
 
 
 
@@ -68,7 +68,7 @@ class Asset(SQLModel, table=True):
     owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
     owner: Optional[User] = Relationship(back_populates="assets")
     txhash: str
-    beneficiaries: List["Beneficiary"] = Relationship(back_populates="asset")
+    beneficiaries: List["Beneficiary"] = Relationship(back_populates="asset", cascade_delete=True)
     trigger_condition_id: Optional[int] = Field(default=None, foreign_key="triggercondition.id")
     trigger_condition: Optional["TriggerCondition"] = Relationship(back_populates="asset")
 
@@ -94,7 +94,7 @@ class TriggerCondition(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     condition_type: TriggerTypeEnum
     value: Optional[str] = None
-    asset: Optional[Asset] = Relationship(back_populates="trigger_condition")
+    asset: Optional[Asset] = Relationship(back_populates="trigger_condition", cascade_delete=True)
 
 
 
