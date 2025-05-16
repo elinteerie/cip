@@ -32,7 +32,7 @@ origins = [
 
 ]
 
-
+import asyncpg
 
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
     # Code to run on startup
     print("db created ")
     #create_db_and_tables()
+    app.state.db_pool = await asyncpg.create_pool(dsn="postgresql://neondb_owner:npg_C5Gqo6wfQRpN@ep-dawn-frog-a4e5ahp3-pooler.us-east-1.aws.neon.tech/neondb")
     await init_db()
     print("db updated")
     yield  # Your application runs during this yield
