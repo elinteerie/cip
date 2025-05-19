@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
@@ -112,28 +112,45 @@ async def authenticate_user(email: str, password: str, db: db_dependency):
 
 #Create a JWT
 async def create_access_token(email: str, wallet_address:str, public_key:str, user_id: int, expires_delta: timedelta ):
-    encode = {"sub": email, "id": user_id, "wallet_address": wallet_address, "public_key": public_key}  
+    encode = {"sub": str(user_id), "id": user_id, "wallet_address": wallet_address, "public_key": public_key, "email": email}  
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
     
+# In your database module
+async def get_user_by_id(user_id: int, db):
+    statement = select(User).where(User.id==user_id)
+    user = await db.execute(statement)
+    user = user.scalars().first()
+    return user
 
 #Decode a JWT
-async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get('sub')
-        user_id: int = payload.get('id')
-        user_role: str = payload.get('role')
-        
+async def get_current_user(request: Request, db: db_dependency):
 
-        if username is None or user_id is None:
-            raise HTTPException(status_code=401, detail="Could Not Valid Credential")
-        return {
-            'username': username, "id": user_id, "user_role": user_role
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization token is missing or invalid")
+    
+    token = auth_header.split(" ")[1]
+    print("token:", token)
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    print("payload")
+        
+    # Extract common claims
+    username: str = payload.get('sub')
+    user_id: int = payload.get('id')
+
+    statement = select(User).where(User.id==user_id)
+    user = await db.execute(statement)
+    user = user.scalars().first()
+
+    print("token:", user)
+    return {
+            'username': user.email,
+            'id': user.id
         }
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Could Not Valid Credential")
+    
         
 
 
