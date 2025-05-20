@@ -145,6 +145,9 @@ async def get_current_user(request: Request, db: db_dependency):
     user = await db.execute(statement)
     user = user.scalars().first()
 
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No User Found, Please Log In")
+
     print("token:", user)
     return {
             'username': user.email,

@@ -51,7 +51,7 @@ app = FastAPI(lifespan=lifespan, title="Crypto Investment Protocol CIP",
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,           # Origins allowed to access your app
+    allow_origins=["*"],           # Origins allowed to access your app
     allow_credentials=True,          # Allow cookies
     allow_methods=["*"],             # Allow all HTTP methods
     allow_headers=["*"],             # Allow all headers
