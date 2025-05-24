@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import User, Plan, TriggerTypeEnum, AssetTypeEnum, CreateAssetSchema, Asset, Beneficiary, TriggerCondition
+from models import (User, Plan, TriggerTypeEnum, AssetTypeEnum,
+CreateAssetSchema, Asset, Beneficiary, TriggerCondition, CreateAssetSchemaSome)
 from typing import Annotated, List
 import os
 from fastapi import BackgroundTasks
@@ -83,6 +84,8 @@ async def get_trigger_types():
 @router.post("/create-asset", status_code=status.HTTP_201_CREATED)
 async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: dict= Depends(get_current_user)):
 
+    #Check For Plans
+    
     # Step 1: Validate Total Share Percentage
     total_percentage = sum([b.share_percentage for b in asset_data.beneficiaries])
     if total_percentage != 100:
@@ -99,11 +102,11 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
     
 
     if not existing_user.wallet_address and not existing_user.public_key:
-        raise HTTPException(status_code=404, detail="Please Connect  A Wallet")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please Connect  A Wallet")
     
 
     if not existing_user.plan_id:
-        raise HTTPException(status_code=404, detail="Choose A Plan FIrst")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Choose A Plan FIrst")
         
         
     
@@ -164,6 +167,106 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
     }
 
 
+@router.post("/create-asset-with-percentage", status_code=status.HTTP_201_CREATED)
+async def create_asset(db: db_dependency, asset_data: CreateAssetSchemaSome, user: dict= Depends(get_current_user)):
+
+    #Check for Plan
+
+    # Check for Balance
+
+    if not asset_data.balance:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You have to Specify the balance")
+
+    asset_balance = asset_data.balance
+    asset_balance_percentage = asset_data.percentage
+
+    # Calculate amount
+    amount = (asset_balance * asset_balance_percentage) / 100
+
+    
+    # Step 1: Validate Total Share Percentage
+    total_percentage = sum([b.share_percentage for b in asset_data.beneficiaries])
+    if total_percentage != 100:
+        raise HTTPException(status_code=400, detail="Total share percentage must equal 100%.")
+    
+    # Step 2: Get the user from the database
+    user_id = user.get("id")
+    statement = select(User).where(User.id == user_id)
+    result = await db.execute(statement)
+    existing_user = result.scalars().first()
+    
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+
+    if not existing_user.wallet_address and not existing_user.public_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please Connect  A Wallet")
+    
+
+    if not existing_user.plan_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Choose A Plan FIrst")
+        
+        
+    
+    
+    # Step 3: Create the Asset
+    asset = Asset(
+        asset_type=asset_data.asset_type,
+        owner_id=user_id,
+        wallet_address= "0x98796788",
+        txhash="8977839Jjjdj", 
+        balance=amount
+    )
+    db.add(asset)
+    await db.commit()
+    await db.refresh(asset)
+
+
+    for b in asset_data.beneficiaries:
+        beneficiary = Beneficiary(
+            wallet_address=b.wallet_address,
+            share_percentage=b.share_percentage,
+            asset_id=asset.id
+        )
+        db.add(beneficiary)
+    await db.commit()
+
+
+    trigger_condition = TriggerCondition(
+        condition_type=asset_data.trigger_condition,
+        value=asset_data.trigger_value,
+        asset=asset
+    )
+    db.add(trigger_condition)
+    await db.commit()
+    await db.refresh(asset)
+
+    statement = select(Asset).options(
+    selectinload(Asset.beneficiaries),
+    selectinload(Asset.trigger_condition)
+    ).where(Asset.id == asset.id)
+
+    result = await db.execute(statement)
+    asset = result.scalars().first()
+
+
+
+
+
+    return {
+        "status": "Asset Created",
+        "asset": {
+            "id": asset.id,
+            "type": asset.asset_type,
+            "owner": existing_user.wallet_address,
+            "beneficiaries": [{"name": b.wallet_address,"share": str(b.share_percentage)} for b in asset.beneficiaries],
+            "trigger_condition": asset.trigger_condition.condition_type,
+            "txhash": asset.txhash,
+            "amount": asset.balance
+        }
+    }
+
+
 
 @router.get("/an-asset", status_code=status.HTTP_200_OK)
 async def an_asset(db: db_dependency, asset_id, user: dict= Depends(get_current_user)):
@@ -187,7 +290,7 @@ async def an_asset(db: db_dependency, asset_id, user: dict= Depends(get_current_
     asset = result.scalars().first()
 
     return {
-        "status": "Asset Created",
+        "status": "Asset Loaded",
         "asset": {
             "id": asset.id,
             "type": asset.asset_type,

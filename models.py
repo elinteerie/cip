@@ -65,6 +65,7 @@ class Asset(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     asset_type: AssetTypeEnum
     wallet_address: str
+    balance: Decimal = Field(default=0.0)
     owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
     owner: Optional[User] = Relationship(back_populates="assets")
     txhash: str
@@ -121,6 +122,15 @@ class BeneficiarySchema(SQLModel, table=False):
 
 class CreateAssetSchema(SQLModel, table =False):
     asset_type: AssetTypeEnum
+    beneficiaries: List[BeneficiarySchema]
+    trigger_condition: TriggerTypeEnum
+    trigger_value: Optional[str] = None
+
+
+class CreateAssetSchemaSome(SQLModel, table =False):
+    asset_type: AssetTypeEnum
+    percentage: Decimal
+    balance: Decimal
     beneficiaries: List[BeneficiarySchema]
     trigger_condition: TriggerTypeEnum
     trigger_value: Optional[str] = None
