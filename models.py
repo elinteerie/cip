@@ -88,6 +88,16 @@ class Plan(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     name: str
     price: Decimal = Field(default=0, max_digits=5, decimal_places=2)
+    individual_users: bool = Field(default=False, nullable=True)
+    crypto_investors: bool = Field(default=False, nullable=True)
+    legal_executirs: bool = Field(default=False, nullable=True)
+    institutions: bool = Field(default=False, nullable=True)
+    create_inherent_plans: bool = Field(default=False, nullable=True)
+    multi_signature_wallet: bool = Field(default=False, nullable=True)
+    encrypted_document_storage: bool = Field(default=False, nullable=True)
+    ai_fraud_detection: bool = Field(default=False, nullable=True)
+    ai_powered_plan_creation: bool = Field(default=False, nullable=True)
+    api_access_for_institution: bool = Field(default=False, nullable=True)
     users: List[User] = Relationship(back_populates="plan")
     
 

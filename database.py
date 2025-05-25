@@ -16,6 +16,8 @@ print(DATABASE_URL)
 connect_arg= {"check_same_thread": False}
 
 engine = create_async_engine(DATABASE_URL)
+
+#engine = create_engine(DB_URL, connect_args=connect_arg, echo=True, future=True)
 #engine = create_engine(DB_URL, connect_args=connect_arg, echo=True, future=True)
 #engine = create_async_engine(DB_URL, echo=True)
 
