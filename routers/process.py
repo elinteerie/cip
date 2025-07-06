@@ -430,7 +430,7 @@ async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Dep
     }
     
 @router.get("/validate-txn-funded", status_code=status.HTTP_200_OK)
-async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Depends(get_current_user)):
+async def validate_txn(db: db_dependency, txhash:str,  user: dict= Depends(get_current_user)):
 
     user_id = user.get("id")
     statement = select(User).where(User.id == user_id)
@@ -450,6 +450,7 @@ async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Dep
 
     if not info.get("status") == "ok":
         return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
+    
     
 
     asset_to_validate.validated_funds = True
