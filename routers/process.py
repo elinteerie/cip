@@ -15,6 +15,12 @@ from sqlmodel import select
 from fastapi import Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+import time
+from utils import get_important_tx_details
+
+
+
+
 
 
 
@@ -85,6 +91,24 @@ async def get_trigger_types():
 async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: dict= Depends(get_current_user)):
 
     #Check For Plans
+    unix_now = int(time.time())  # returns seconds as an integer
+    print("type:", asset_data.trigger_condition.value)
+
+    if asset_data.trigger_condition.value =="due_date":
+        if not asset_data.trigger_value > time.time():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Time Must be in the Future")
+            
+    
+
+
+    user_id = user.get("id")
+    result = select(User).where(User.id == user_id)
+    existing_user = await db.execute(result)
+    existing_user = existing_user.scalars().first()
+
+    if not existing_user.plan_id:
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You need to select a plan")
+
     
     # Step 1: Validate Total Share Percentage
     total_percentage = sum([b.share_percentage for b in asset_data.beneficiaries])
@@ -115,8 +139,8 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
     asset = Asset(
         asset_type=asset_data.asset_type,
         owner_id=user_id,
-        wallet_address= "0x98796788",
-        txhash="8977839Jjjdj"
+        wallet_address=existing_user.wallet_address,
+        txhash=asset_data.txhash
     )
     db.add(asset)
     await db.commit()
@@ -162,7 +186,10 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
             "owner": existing_user.wallet_address,
             "beneficiaries": [{"name": b.wallet_address,"share": str(b.share_percentage)} for b in asset.beneficiaries],
             "trigger_condition": asset.trigger_condition.condition_type,
-            "txhash": asset.txhash
+            "txhash": asset.txhash,
+            "validated_created": asset.validated_created,
+            "validated_funded": asset.validated_funds,
+            "asset_wallet_address": asset.wallet_address
         }
     }
 
@@ -298,6 +325,8 @@ async def an_asset(db: db_dependency, asset_id, user: dict= Depends(get_current_
             "beneficiaries": [{"name": b.wallet_address,"share": str(b.share_percentage)} for b in asset.beneficiaries],
             "trigger_condition": asset.trigger_condition.condition_type,
             "txhash": asset.txhash,
+            "validated_created": asset.validated_created,
+            "validated_funded": asset.validated_funds,
             "asset_wallet_address": asset.wallet_address
         }
     }
@@ -358,7 +387,82 @@ async def an_asset(db: db_dependency, user: dict= Depends(get_current_user)):
 
 
 
+@router.get("/validate-txn-created")
+async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Depends(get_current_user)):
+
+    user_id = user.get("id")
+    statement = select(User).where(User.id == user_id)
+    result = await db.execute(statement)
+    existing_user = result.scalars().first()
     
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    asset_statement = select(Asset).where(Asset.owner_id==user_id).where(Asset.txhash==txhash)
+    result = await db.execute(asset_statement)
+    asset_to_validate = result.scalar_one_or_none()
+
+    info = await get_important_tx_details(txhash=txhash)
+
+    if not info.get("status") == "ok":
+            return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
+
+    if type == "create":
+
+        if asset_to_validate.validated_created:
+            return HTTPException(status_code=status.HTTP_200_OK, detail="Transaction Has been Validated Already")
+        asset_to_validate.validated_created = True
+        await db.commit()
+    
+    elif type =="fund":
+        if asset_to_validate.validated_funds:
+            return HTTPException(status_code=status.HTTP_200_OK, detail="Asset has been Funded Already")
+        asset_to_validate.validated_funds = True
+        asset_to_validate.balance = info.get("value_sent")
+        await db.commit()
+
+    else:
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unsupported Type, only create and fund is supported")
+        
+
+    return {
+        "message": "Transaction has been Validated"
+    }
+    
+@router.get("/validate-txn-funded", status_code=status.HTTP_200_OK)
+async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Depends(get_current_user)):
+
+    user_id = user.get("id")
+    statement = select(User).where(User.id == user_id)
+    result = await db.execute(statement)
+    existing_user = result.scalars().first()
+    
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    asset_statement = select(Asset).where(Asset.owner_id==user_id).where(Asset.txhash==txhash)
+    result = await db.execute(asset_statement)
+    asset_to_validate = result.scalar_one_or_none()
+
+    
+
+    info = await get_important_tx_details(txhash=txhash)
+
+    if not info.get("status") == "ok":
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
+    
+
+    asset_to_validate.validated_funds = True
+    asset_to_validate.balance = info.get("value_sent")
+    await db.commit()
+
+
+    return {
+        "message": "Transaction has been Validated"
+    }
+    
+
+
 
 
 

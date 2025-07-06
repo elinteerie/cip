@@ -29,18 +29,18 @@ class RoleEnum(str, Enum):
 
 
 class TriggerTypeEnum(str, Enum):
-    MULTISIG = "multisig"
-    INACTIVITY = "inactivity"
+    #MULTISIG = "multisig"
+    #INACTIVITY = "inactivity"
     DUE_DATE = "due_date"
 
 
 class AssetTypeEnum(str, Enum):
-    BTC = "BTC"
-    ETH = "ETH"
+    #BTC = "BTC"
+    #ETH = "ETH"
     COTI = "COTI"
-    USDT = "USDT"
-    BNB = "BNB"
-    MATIC = "MATIC"
+    #USDT = "USDT"
+    #BNB = "BNB"
+    #MATIC = "MATIC"
 
 
 class User(SQLModel, table=True):
@@ -68,10 +68,11 @@ class Asset(SQLModel, table=True):
     balance: Decimal = Field(default=0.0)
     owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
     owner: Optional[User] = Relationship(back_populates="assets")
-    txhash: str
+    txhash: str | None = Field(unique=True)
+    validated_created: bool | None = Field(default=False)
+    validated_funds: bool | None = Field(default=False)
     beneficiaries: List["Beneficiary"] = Relationship(back_populates="asset", cascade_delete=True)
-    trigger_condition_id: Optional[int] = Field(default=None, foreign_key="triggercondition.id")
-    trigger_condition: Optional["TriggerCondition"] = Relationship(back_populates="asset")
+    trigger_condition: Optional["TriggerCondition"] = Relationship(back_populates="asset", cascade_delete=True)
 
 
 
@@ -104,8 +105,9 @@ class Plan(SQLModel, table=True):
 class TriggerCondition(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     condition_type: TriggerTypeEnum
-    value: Optional[str] = None
-    asset: Optional[Asset] = Relationship(back_populates="trigger_condition", cascade_delete=True)
+    value: Optional[int] = None
+    asset_id: Optional[int] = Field(default=None, foreign_key="asset.id")
+    asset: Optional[Asset] = Relationship(back_populates="trigger_condition")
 
 
 
@@ -134,7 +136,8 @@ class CreateAssetSchema(SQLModel, table =False):
     asset_type: AssetTypeEnum
     beneficiaries: List[BeneficiarySchema]
     trigger_condition: TriggerTypeEnum
-    trigger_value: Optional[str] = None
+    trigger_value: Optional[float] = None
+    txhash: str
 
 
 class CreateAssetSchemaSome(SQLModel, table =False):
@@ -143,7 +146,7 @@ class CreateAssetSchemaSome(SQLModel, table =False):
     balance: Decimal
     beneficiaries: List[BeneficiarySchema]
     trigger_condition: TriggerTypeEnum
-    trigger_value: Optional[str] = None
+    trigger_value: Optional[float] = None
 
 
 class CreateUserRequest(SQLModel, table=False):
@@ -187,40 +190,8 @@ class EmailVRequest(SQLModel, table=False):
         }
 
 
-class AirtimeRequest(SQLModel, table=False):
-    network: int # "send" or "verify"
-    amount: float
-    phone_number: str = Field(nullable=False)
-    transaction_pin: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "network": 1,
-                "amount": 100.0,
-                "phone_number": "08107807411",
-                "transaction_pin": "5555"
-            }
-        }
 
 
-
-
-class DataRequest(SQLModel, table=False):
-    network: int # "send" or "verify"
-    package: int
-    phone_number: str = Field(nullable=False)
-    transaction_pin: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "network": 1,
-                "package": 1,
-                "phone_number": "08107807411",
-                "transaction_pin": "5555"
-            }
-        }
 
 
 
