@@ -392,7 +392,7 @@ async def an_asset(db: db_dependency, user: dict= Depends(get_current_user)):
 
 
 
-@router.get("/validate-txn-fund")
+@router.patch("/validate-txn-fund")
 async def validate_txn(db: db_dependency, txhash_funded:str, asset_id:int, background_tasks: BackgroundTasks,  user: dict= Depends(get_current_user)):
 
     user_id = user.get("id")
