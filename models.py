@@ -8,6 +8,8 @@ import uuid
 from enum import Enum
 from decimal import Decimal
 import random
+from sqlalchemy import event
+
 
 
 

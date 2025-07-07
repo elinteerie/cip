@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 import time
 from utils import get_important_tx_details
+from events import validate_asset_created_async, validate_asset_funded_async
 
 
 
@@ -88,7 +89,7 @@ async def get_trigger_types():
 
 
 @router.post("/create-asset", status_code=status.HTTP_201_CREATED)
-async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: dict= Depends(get_current_user)):
+async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, background_tasks: BackgroundTasks, user: dict= Depends(get_current_user)):
 
     #Check For Plans
     unix_now = int(time.time())  # returns seconds as an integer
@@ -175,8 +176,7 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
     asset = result.scalars().first()
 
 
-
-
+    background_tasks.add_task(validate_asset_created_async, asset.txhash, db)
 
     return {
         "status": "Asset Created",
@@ -392,8 +392,8 @@ async def an_asset(db: db_dependency, user: dict= Depends(get_current_user)):
 
 
 
-@router.get("/validate-txn-created")
-async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Depends(get_current_user)):
+@router.get("/validate-txn-fund")
+async def validate_txn(db: db_dependency, txhash_funded:str, asset_id:int, background_tasks: BackgroundTasks,  user: dict= Depends(get_current_user)):
 
     user_id = user.get("id")
     statement = select(User).where(User.id == user_id)
@@ -403,70 +403,19 @@ async def validate_txn(db: db_dependency, txhash:str, type:str,  user: dict= Dep
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found.")
     
-    asset_statement = select(Asset).where(Asset.owner_id==user_id).where(Asset.txhash==txhash)
+    asset_statement = select(Asset).where(Asset.owner_id==user_id).where(Asset.id==asset_id)
     result = await db.execute(asset_statement)
     asset_to_validate = result.scalar_one_or_none()
 
-    info = await get_important_tx_details(txhash=txhash)
-
-    if not info.get("status") == "ok":
-            return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
-
-    if type == "create":
-
-        if asset_to_validate.validated_created:
-            return HTTPException(status_code=status.HTTP_200_OK, detail="Transaction Has been Validated Already")
-        asset_to_validate.validated_created = True
-        await db.commit()
-    
-    elif type =="fund":
-        if asset_to_validate.validated_funds:
-            return HTTPException(status_code=status.HTTP_200_OK, detail="Asset has been Funded Already")
-        asset_to_validate.validated_funds = True
-        asset_to_validate.balance = info.get("value_sent")
-        await db.commit()
-
-    else:
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unsupported Type, only create and fund is supported")
-        
-
-    return {
-        "message": "Transaction has been Validated"
-    }
-    
-@router.get("/validate-txn-funded", status_code=status.HTTP_200_OK)
-async def validate_txn(db: db_dependency, txhash:str,  user: dict= Depends(get_current_user)):
-
-    user_id = user.get("id")
-    statement = select(User).where(User.id == user_id)
-    result = await db.execute(statement)
-    existing_user = result.scalars().first()
-    
-    if not existing_user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    
-    asset_statement = select(Asset).where(Asset.owner_id==user_id).where(Asset.txhash==txhash)
-    result = await db.execute(asset_statement)
-    asset_to_validate = result.scalar_one_or_none()
-
-    
-
-    info = await get_important_tx_details(txhash=txhash)
-
-    if not info.get("status") == "ok":
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
-    
-    
-
-    asset_to_validate.validated_funds = True
-    asset_to_validate.balance = info.get("value_sent")
+    asset_to_validate.txhash_funded = txhash_funded
     await db.commit()
+    await db.refresh(asset_to_validate)
 
-
+    background_tasks.add_task(validate_asset_funded_async, asset_to_validate.txhash_funded, db)
     return {
         "message": "Transaction has been Validated"
     }
-    
+
 
 
 
