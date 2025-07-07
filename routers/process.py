@@ -188,6 +188,7 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, user: d
             "trigger_condition": asset.trigger_condition.condition_type,
             "txhash": asset.txhash,
             "validated_created": asset.validated_created,
+            "block_id": asset.blockchain_user_will_id,
             "validated_funded": asset.validated_funds,
             "asset_wallet_address": asset.wallet_address
         }
@@ -326,6 +327,7 @@ async def an_asset(db: db_dependency, asset_id, user: dict= Depends(get_current_
             "trigger_condition": asset.trigger_condition.condition_type,
             "txhash": asset.txhash,
             "validated_created": asset.validated_created,
+            "block_id": asset.blockchain_user_will_id,
             "validated_funded": asset.validated_funds,
             "asset_wallet_address": asset.wallet_address
         }
@@ -367,6 +369,7 @@ async def an_asset(db: db_dependency, user: dict= Depends(get_current_user)):
             "id": asset.id,
             "type": asset.asset_type,
             "validated_created": asset.validated_created,
+            "block_id": asset.blockchain_user_will_id,
             "validated_funded": asset.validated_funds,
             "beneficiaries": [
                 {"wallet_address": b.wallet_address, "share": str(b.share_percentage)}
