@@ -142,6 +142,7 @@ class CreateAssetSchema(SQLModel, table =False):
     trigger_condition: TriggerTypeEnum
     trigger_value: Optional[float] = None
     txhash: str
+    blockchain_asset_id:int
 
 
 class CreateAssetSchemaSome(SQLModel, table =False):

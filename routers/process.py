@@ -141,7 +141,8 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, backgro
         asset_type=asset_data.asset_type,
         owner_id=user_id,
         wallet_address=existing_user.wallet_address,
-        txhash=asset_data.txhash
+        txhash=asset_data.txhash,
+        blockchain_user_will_id=asset_data.blockchain_asset_id
     )
     db.add(asset)
     await db.commit()
