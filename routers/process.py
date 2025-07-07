@@ -366,6 +366,8 @@ async def an_asset(db: db_dependency, user: dict= Depends(get_current_user)):
         {
             "id": asset.id,
             "type": asset.asset_type,
+            "validated_created": asset.validated_created,
+            "validated_funded": asset.validated_funds,
             "beneficiaries": [
                 {"wallet_address": b.wallet_address, "share": str(b.share_percentage)}
                 for b in asset.beneficiaries
