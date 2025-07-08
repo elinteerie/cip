@@ -33,7 +33,7 @@ async def validate_asset_created_async(txhash: str, session: AsyncSession):
 
 async def validate_asset_funded_async(txhash: str, session: AsyncSession):
     await asyncio.sleep(20)  # wait for 4 seconds
-    result = await session.execute(select(Asset).where(Asset.txhash == txhash))
+    result = await session.execute(select(Asset).where(Asset.txhash_funded == txhash))
     asset = result.scalar_one_or_none()
     info = await get_important_tx_details(txhash=txhash)
 
