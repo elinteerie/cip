@@ -72,7 +72,7 @@ class Asset(SQLModel, table=True):
     owner: Optional[User] = Relationship(back_populates="assets")
     txhash: str | None = Field(unique=True)
     txhash_funded: str | None = Field(unique=True)
-    blockchain_user_will_id: str | None = Field(unique=True)
+    blockchain_user_will_id: int | None = Field(unique=True)
     validated_created: bool | None = Field(default=False)
     validated_funds: bool | None = Field(default=False)
     beneficiaries: List["Beneficiary"] = Relationship(back_populates="asset", cascade_delete=True)
@@ -142,7 +142,7 @@ class CreateAssetSchema(SQLModel, table =False):
     trigger_condition: TriggerTypeEnum
     trigger_value: Optional[float] = None
     txhash: str
-    blockchain_asset_id:int
+    blockchain_asset_id: int
 
 
 class CreateAssetSchemaSome(SQLModel, table =False):
