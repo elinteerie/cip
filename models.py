@@ -176,7 +176,6 @@ class UpdateFirstPin(SQLModel, table=False):
 
 class UpdateUserInfoRequest(SQLModel, table=False):
     wallet_address: Optional[str] = None
-    public_key: Optional[str] = None
     
     
 

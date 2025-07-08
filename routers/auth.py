@@ -386,9 +386,8 @@ async def account_info_update(request: UpdateUserInfoRequest, db: db_dependency,
     existing_user = existing_user.scalars().first()
     print("user:", existing_user)
 
-    if not existing_user.wallet_address and not existing_user.public_key:
+    if not existing_user.wallet_address:
         existing_user.wallet_address = request.wallet_address
-        existing_user.public_key = request.public_key
         existing_user.is_wallet_connected = True
 
         await db.commit()
