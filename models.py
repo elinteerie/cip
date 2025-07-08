@@ -159,7 +159,6 @@ class CreateUserRequest(SQLModel, table=False):
     email: Optional[str] = None  
     password: Optional[str] = Field(default=None, min_length=6, description="Password must be at least 6 characters.")
     wallet_address: Optional[str] = None 
-    public_key: Optional[str] = None 
 
     class Config:
         json_schema_extra = {

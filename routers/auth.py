@@ -232,8 +232,7 @@ async def create_user_request_otp(request: CreateUserRequest, db: db_dependency)
         }
     elif request.reg_type == "web3":
 
-        statement = select(User).where(
-        (User.public_key == request.public_key) & (User.wallet_address == request.wallet_address))
+        statement = select(User).where(User.wallet_address == request.wallet_address)
         existing_user = await db.execute(statement)
         existing_user = existing_user.scalars().first()
 
@@ -254,16 +253,8 @@ async def create_user_request_otp(request: CreateUserRequest, db: db_dependency)
             detail=f"Please Input the Wallet Address to Proceed"
         )
 
-        if not request.public_key:
-            raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Please Input the Public Key to Proceed"
-        )
-
-
         create_user= User(
             wallet_address=request.wallet_address,
-            public_key=request.public_key,
             is_active=True,
             is_wallet_connected=True,
             role="user")
