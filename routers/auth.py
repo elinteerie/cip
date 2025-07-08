@@ -81,13 +81,11 @@ class OAuth2PhoneNumberRequestForm:
 class OAuthWalletRequestForm:
     def __init__(
         self,
-        public_key: str = Form(...),
         wallet_address: str = Form(...),
         scope: str = Form(""),
         client_id: str = Form(None),
         client_secret: str = Form(None),
     ):
-        self.public_key = public_key
         self.wallet_address = wallet_address
         self.scopes = scope.split()
         self.client_id = client_id
@@ -111,8 +109,8 @@ async def authenticate_user(email: str, password: str, db: db_dependency):
     return user
 
 #Create a JWT
-async def create_access_token(email: str, wallet_address:str, public_key:str, user_id: int, expires_delta: timedelta ):
-    encode = {"sub": str(user_id), "id": user_id, "wallet_address": wallet_address, "public_key": public_key, "email": email}  
+async def create_access_token(email: str, wallet_address:str, user_id: int, expires_delta: timedelta ):
+    encode = {"sub": str(user_id), "id": user_id, "wallet_address": wallet_address, "email": email}  
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -313,11 +311,9 @@ async def login_for_access_token(db: db_dependency, form_data: OAuth2PhoneNumber
 
 
 #Authenticate Users
-async def authenticate_wallet_user(public_key: str, wallet_address: str, db: db_dependency):
+async def authenticate_wallet_user(wallet_address: str, db: db_dependency):
 
-    statement = select(User).where(
-        (User.public_key == public_key) & (User.wallet_address == wallet_address)
-    )
+    statement = select(User).where(User.wallet_address == wallet_address)
     result = await db.execute(statement)
     result = result.scalars().first()
     user = result
@@ -326,7 +322,7 @@ async def authenticate_wallet_user(public_key: str, wallet_address: str, db: db_
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User with the provided public key and wallet address not found."
+            detail="User with the provided wallet address not found."
         )
     
     return user
@@ -338,13 +334,13 @@ async def authenticate_wallet_user(public_key: str, wallet_address: str, db: db_
 async def login_for_access_token(db: db_dependency, form_data: OAuthWalletRequestForm = Depends()):
 
 
-    user = await authenticate_wallet_user(form_data.public_key, form_data.wallet_address, db)
+    user = await authenticate_wallet_user(form_data.wallet_address, db)
 
     if not user:
         raise HTTPException(status_code=401, detail="Could Not Valid Credential")
         
     
-    token = await create_access_token(user.email, user.wallet_address, user.public_key, user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
+    token = await create_access_token(user.email, user.wallet_address, user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
     
     
     return {
