@@ -290,7 +290,7 @@ async def login_for_access_token(db: db_dependency, form_data: OAuth2PhoneNumber
         raise HTTPException(status_code=401, detail="Could Not Valid Credential")
         
     
-    token = await create_access_token(user.email, user.wallet_address, user.public_key, user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
+    token = await create_access_token(user.email, user.wallet_address, user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
     
     
     return {
