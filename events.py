@@ -14,7 +14,7 @@ db_dependency = Annotated[AsyncSession, Depends(get_db)]
 
 
 async def validate_asset_created_async(txhash: str, session: AsyncSession):
-    await asyncio.sleep(4)  # wait for 4 seconds
+    await asyncio.sleep(5)  # wait for 4 seconds
     result = await session.execute(select(Asset).where(Asset.txhash == txhash))
     asset = result.scalar_one_or_none()
     info = await get_important_tx_details(txhash=txhash)
@@ -32,7 +32,7 @@ async def validate_asset_created_async(txhash: str, session: AsyncSession):
 
 
 async def validate_asset_funded_async(txhash: str, session: AsyncSession):
-    await asyncio.sleep(4)  # wait for 4 seconds
+    await asyncio.sleep(20)  # wait for 4 seconds
     result = await session.execute(select(Asset).where(Asset.txhash == txhash))
     asset = result.scalar_one_or_none()
     info = await get_important_tx_details(txhash=txhash)
