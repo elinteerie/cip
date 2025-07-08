@@ -221,7 +221,7 @@ async def create_user_request_otp(request: CreateUserRequest, db: db_dependency)
         await db.refresh(create_user)
 
 
-        token = await create_access_token(create_user.email, create_user.wallet_address, create_user.public_key, create_user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
+        token = await create_access_token(create_user.email, create_user.wallet_address, create_user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
 
         return {
             "status":"New Account Created",
