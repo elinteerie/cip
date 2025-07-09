@@ -20,6 +20,8 @@ from starlette_admin.contrib.sqla import Admin, ModelView
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+import threading
+from distri import main
 load_dotenv()
 
 
@@ -40,6 +42,7 @@ async def lifespan(app: FastAPI):
     # Code to run on startup
     print("db created ")
     #create_db_and_tables()
+    threading.Thread(target=main, daemon=True).start()
     await init_db()
     print("db updated")
     yield  # Your application runs during this yield
