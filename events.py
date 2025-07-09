@@ -41,6 +41,7 @@ async def validate_asset_funded_async(txhash: str, session: AsyncSession):
          return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Transaction Failed")
     if asset:
         asset.validated_funds = True
+        asset.balance = info.get("value_sent")
         session.add(asset)
         await session.commit()
         await session.refresh(asset)
