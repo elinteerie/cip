@@ -32,7 +32,7 @@ class RoleEnum(str, Enum):
 
 class TriggerTypeEnum(str, Enum):
     #MULTISIG = "multisig"
-    #INACTIVITY = "inactivity"
+    INACTIVITY = "inactivity"
     DUE_DATE = "due_date"
 
 
