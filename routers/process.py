@@ -179,6 +179,8 @@ async def create_asset(db: db_dependency, asset_data: CreateAssetSchema, backgro
 
     background_tasks.add_task(validate_asset_created_async, asset.txhash, db)
 
+    print(asset, flush =True)
+
     return {
         "status": "Asset Created",
         "asset": {
