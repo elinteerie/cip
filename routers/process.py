@@ -16,7 +16,7 @@ from fastapi import Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 import time
-from utils import get_important_tx_details
+from utils import get_important_tx_details, get_latest_transaction
 from events import validate_asset_created_async, validate_asset_funded_async
 
 
@@ -420,6 +420,13 @@ async def validate_txn(db: db_dependency, txhash_funded:str, asset_id:int, backg
     }
 
 
+
+@router.get("/latest_trans")
+async def get_latest_transactiont(address: str):
+
+    data = await get_latest_transaction(address)
+
+    return data
 
 
 
