@@ -1,9 +1,10 @@
 from web3 import Web3
 import time
 import json
-from sqlmodel import select, or_
+from sqlmodel import select, or_, and_
 from sqlmodel.ext.asyncio.session import AsyncSession
-from models import User, Asset, TriggerCondition
+from sqlalchemy.orm import selectinload
+from models import User, Asset, TriggerCondition, TriggerTypeEnum
 from sqlmodel import SQLModel, Field, Session, select, create_engine
 from decimal import Decimal
 import time
@@ -20,25 +21,36 @@ def get_ready_assets():
     with Session(engine) as session:
         now = int(time.time())  # UNIX timestamp
         stmt = (
-            select(Asset)
-            .where(Asset.validated_funds == True)
-            .where(Asset.distributed == False)
-            .where(Asset.trigger_condition != None)
-            .where(
-                or_(
-                    # trigger_condition exists and its value <= now
-                    Asset.trigger_condition.has(TriggerCondition.value <= now),
-                    # OR is_now_due_date == True
-                    Asset.is_now_due_date == True
+    select(Asset)
+    .where(Asset.validated_funds == True)
+    .where(Asset.distributed == False)
+    .where(Asset.trigger_condition != None)
+    .where(
+        or_(
+            and_(
+                Asset.trigger_condition.has(
+                    and_(
+                        TriggerCondition.condition_type == TriggerTypeEnum.DUE_DATE,
+                        TriggerCondition.value <= now
+                    )
                 )
+            ),
+            and_(
+                Asset.trigger_condition.has(
+                    TriggerCondition.condition_type == TriggerTypeEnum.INACTIVITY
+                ),
+                Asset.is_now_due_date == True
             )
         )
+    )
+    .options(selectinload(Asset.trigger_condition))
+    )
         
         return session.exec(stmt).all()
 
 # === CONFIGURATION ===
 RPC_URL = "https://testnet.coti.io/rpc"
-CONTRACT_ADDRESS = Web3.to_checksum_address("0x6B4485B0Aec3BBe9E8eA335F049df5DE41668C5D")
+CONTRACT_ADDRESS = Web3.to_checksum_address("0x2bebf9eF4d3F694B47525d8C26B3F6995DE6cEAA")
 
 # Load your wallet's private key and address
 PRIVATE_KEY = "0c74b1f098f35805870c2c02e63d23100377a0fcd97c530e7957e14793442b0d"
@@ -66,11 +78,16 @@ def main():
             for asset in assets:
                 owner = Web3.to_checksum_address(asset.wallet_address)
                 will_id = asset.blockchain_user_will_id
-                balance_wei = int(asset.balance)  # Convert Ether → Wei
+                inactivity_months = int(asset.trigger_condition.value or 0)
 
-                print(f"📤 Distributing {web3.from_wei(balance_wei, 'ether')} ETH → owner: {owner}, willId: {will_id}")
+                print(
+                    f"📤 Distributing → owner: {owner}, willId: {will_id}, "
+                    f"observedInactivity: {inactivity_months} months"
+                )
 
-                success, tx_hash, block_number = trigger_distribution(owner, will_id, balance_wei)
+                success, tx_hash, block_number = trigger_distribution(
+                    owner, will_id, inactivity_months
+                )
 
                 if success:
                     with Session(engine) as session:
@@ -86,33 +103,38 @@ def main():
         except Exception as e:
             print(f"⚠️ Error: {e}")
 
-        time.sleep(60)  # run every 60 sec
+        time.sleep(3600)  # run every  1Hr
 
 
 
 
-def trigger_distribution(owner: str, will_id: int, total: int):
-    nonce = web3.eth.get_transaction_count(MY_ADDRESS, 'pending')
-    base_gas_price = web3.eth.gas_price
-    gas_price = int(base_gas_price * 1.1)  # bump it by 10%
+def trigger_distribution(owner: str, will_id: int, observed_inactivity_months: int):
+    nonce = web3.eth.get_transaction_count(MY_ADDRESS, "pending")
+    gas_price = int(web3.eth.gas_price * 1.1)
 
-    print(f"📤 Distributing {web3.from_wei(total, 'ether')} ETH → owner: {owner}, willId: {will_id}")
-
-    tx = contract.functions.distribute(owner, will_id, total).build_transaction({
-        'from': MY_ADDRESS,
-        'nonce': nonce,
-        'gas': 300_000,
-        'gasPrice': web3.to_wei('10', 'gwei')
+    tx = contract.functions.distribute(
+        owner,
+        will_id,
+        observed_inactivity_months
+    ).build_transaction({
+        "from": MY_ADDRESS,
+        "nonce": nonce,
+        "gas": 300_000,
+        "gasPrice": gas_price
     })
 
     signed_tx = web3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
     tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
     print(f"✅ Tx sent: {tx_hash.hex()}")
+
     receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+    print(f"⛏️ Mined in block {receipt.blockNumber}")
+
     if receipt.status == 1:
         return True, tx_hash.hex(), receipt.blockNumber
     else:
         return False, tx_hash.hex(), receipt.blockNumber
+
     
 
 if __name__ == "__main__":
