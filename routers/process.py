@@ -421,13 +421,48 @@ async def validate_txn(db: db_dependency, txhash_funded:str, asset_id:int, backg
 
 
 
-@router.get("/latest_trans")
-async def get_latest_transactiont(address: str):
+@router.get("/cron-inactivity")
+async def cron_inactivity(db: db_dependency):
+    now = int(time.time())
 
-    data = await get_latest_transaction(address)
+    # query assets where trigger_condition.type == "inactivity"
+    stmt = (
+        select(Asset)
+        .where(Asset.validated_funds == True)
+        .where(Asset.distributed == False)
+        .where(
+            Asset.trigger_condition.has(
+                TriggerCondition.condition_type == "inactivity"
+            )
+        )
+        .options(selectinload(Asset.trigger_condition))
+    )
 
-    return data
+    result = await db.execute(stmt)
+    assets = result.scalars().all()
 
+    if not assets:
+        return {"message": "No assets with inactivity trigger condition found."}
 
+    updated_assets = []
 
+    for asset in assets:
+        wallet_address = asset.wallet_address  # adjust if needed
 
+        # 🔷 Call your async function
+        latest_tx = await get_latest_transaction(wallet_address)
+
+        # compare with trigger_condition.value
+        if latest_tx >= asset.trigger_condition.value:
+            asset.is_now_due_date = True
+            updated_assets.append(asset)
+
+    # Commit changes if any
+    if updated_assets:
+        db.add_all(updated_assets)
+        await db.commit()
+
+    return {
+        "updated_assets_count": len(updated_assets),
+        "updated_asset_ids": [a.id for a in updated_assets]
+    }

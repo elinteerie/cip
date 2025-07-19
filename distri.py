@@ -1,7 +1,7 @@
 from web3 import Web3
 import time
 import json
-from sqlmodel import select
+from sqlmodel import select, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
 from models import User, Asset, TriggerCondition
 from sqlmodel import SQLModel, Field, Session, select, create_engine
@@ -24,8 +24,16 @@ def get_ready_assets():
             .where(Asset.validated_funds == True)
             .where(Asset.distributed == False)
             .where(Asset.trigger_condition != None)
-            .where(Asset.trigger_condition.has(TriggerCondition.value <= now))
+            .where(
+                or_(
+                    # trigger_condition exists and its value <= now
+                    Asset.trigger_condition.has(TriggerCondition.value <= now),
+                    # OR is_now_due_date == True
+                    Asset.is_now_due_date == True
+                )
+            )
         )
+        
         return session.exec(stmt).all()
 
 # === CONFIGURATION ===
