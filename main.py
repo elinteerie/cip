@@ -16,6 +16,8 @@ from starlette_admin.auth import AdminConfig, AdminUser, AuthProvider
 from starlette_admin.exceptions import FormValidationError, LoginFailed
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware import Middleware
 from starlette_admin.contrib.sqla import Admin, ModelView
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -74,7 +76,7 @@ templates = Jinja2Templates(directory="templatesa")
 
 users = {
     "admin": {
-        "name": "Admin",
+        "name": "admin",
         "avatar": "admin.png",
         "company_logo_url": "admin.png",
         "roles": ["read", "create", "edit", "delete", "action_make_published"],
@@ -151,7 +153,7 @@ class UsernameAndPasswordProvider(AuthProvider):
         return response
 
 
-admin = Admin(engine, title="CIP: Admin CRUD")
+admin = Admin(engine, title="CIP: Admin CRUD", auth_provider=UsernameAndPasswordProvider(), middlewares=[Middleware(SessionMiddleware, secret_key="83737308373")])
 
 admin.add_view(ModelView(models.User))
 admin.add_view(ModelView(models.Plan))
