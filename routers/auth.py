@@ -146,7 +146,7 @@ async def get_current_user(request: Request, db: db_dependency):
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No User Found, Please Log In")
 
-    print("token:", user)
+    #print("token:", user)
     return {
             'username': user.email,
             'id': user.id
@@ -363,7 +363,7 @@ async def user_info(db: db_dependency, user: dict= Depends(get_current_user)):
     }
 
 
-@router.patch('/account-wallet-update', status_code=status.HTTP_201_CREATED)
+@router.patch('/account-wallet-update', status_code=status.HTTP_200_OK)
 async def account_info_update(request: UpdateUserInfoRequest, db: db_dependency, user: dict= Depends(get_current_user)):
     """
    Connect Wallet after web2 route {"wallet_address": "786787"
@@ -375,11 +375,12 @@ async def account_info_update(request: UpdateUserInfoRequest, db: db_dependency,
     result = select(User).where(User.id == user_id)
     existing_user = await db.execute(result)
     existing_user = existing_user.scalars().first()
-    print("user:", existing_user)
+    print("userw:", request.wallet_address)
 
     if not existing_user.wallet_address:
+        print("user_wa:", request.wallet_address, flush=True)
         existing_user.wallet_address = request.wallet_address
-        print("user_wa:", request.wallet_address)
+        print("user_wa:", request.wallet_address, flush=True)
         existing_user.is_wallet_connected = True
 
         await db.commit()
