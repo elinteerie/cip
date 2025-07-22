@@ -377,6 +377,12 @@ async def account_info_update(request: UpdateUserInfoRequest, db: db_dependency,
     existing_user = existing_user.scalars().first()
     print("userw:", request.wallet_address)
 
+    if not request.wallet_address or request.wallet_address.strip() == "":
+        raise HTTPException(
+            status_code=400,
+            detail="Wallet address cannot be empty."
+        )
+
     if not existing_user.wallet_address:
         print("user_wa:", request.wallet_address, flush=True)
         existing_user.wallet_address = request.wallet_address
