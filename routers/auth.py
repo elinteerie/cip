@@ -274,6 +274,16 @@ async def create_user_request_otp(request: CreateUserRequest, db: db_dependency)
         db.refresh(create_user)
 
 
+        statement = select(Plan).where(Plan.id ==1)
+        result = await db.execute(statement)
+        plan = result.scalars().first()
+
+        create_user.plan = plan
+
+        await db.commit()
+        db.refresh(existing_user)
+
+
         token = await create_access_token(create_user.email, create_user.wallet_address, create_user.public_key, create_user.id, timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)))
 
 
