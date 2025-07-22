@@ -379,6 +379,7 @@ async def account_info_update(request: UpdateUserInfoRequest, db: db_dependency,
 
     if not existing_user.wallet_address:
         existing_user.wallet_address = request.wallet_address
+        print("user_wa:", request.wallet_address)
         existing_user.is_wallet_connected = True
 
         await db.commit()
