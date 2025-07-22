@@ -72,7 +72,7 @@ class Asset(SQLModel, table=True):
     owner: Optional[User] = Relationship(back_populates="assets")
     txhash: str | None = Field(unique=True)
     txhash_funded: str | None = Field(unique=True)
-    blockchain_user_will_id: int | None = Field(unique=True)
+    blockchain_user_will_id: int | None = Field(default=None)
     validated_created: bool | None = Field(default=False)
     validated_funds: bool | None = Field(default=False)
     distributed: bool | None = Field(default=False)
