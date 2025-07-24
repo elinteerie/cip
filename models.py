@@ -96,8 +96,10 @@ class Plan(SQLModel, table=True):
     name: str
     price: Decimal = Field(default=0, max_digits=5, decimal_places=2)
     individual_users: bool = Field(default=False, nullable=True)
+    multiple_wills: bool = Field(default=False, nullable=True)
+    multiple_triggers: bool = Field(default=False, nullable=True)
     crypto_investors: bool = Field(default=False, nullable=True)
-    legal_executirs: bool = Field(default=False, nullable=True)
+    legal_executors: bool = Field(default=False, nullable=True)
     institutions: bool = Field(default=False, nullable=True)
     create_inherent_plans: bool = Field(default=False, nullable=True)
     multi_signature_wallet: bool = Field(default=False, nullable=True)
