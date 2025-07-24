@@ -7,10 +7,11 @@ from datetime import datetime, timezone
 
 load_dotenv()
 
-TESTURL = os.getenv('COTI_TEST')
+MAIN_URL = os.getenv('COTI_MAIN')
+
 
 async def get_important_tx_details(txhash):
-    url = f"{TESTURL}/{txhash}"
+    url = f"{MAIN_URL}/{txhash}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
@@ -31,7 +32,7 @@ async def get_important_tx_details(txhash):
 
 
 
-URL= "https://testnet.cotiscan.io/api/v2/addresses"
+URL= "https://mainnet.cotiscan.io/api/v2/addresses"
 
 
 async def get_latest_transaction(wallet_address):

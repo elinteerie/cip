@@ -58,8 +58,8 @@ def get_ready_assets():
         return session.exec(stmt).all()
 
 # === CONFIGURATION ===
-RPC_URL = "https://testnet.coti.io/rpc"
-CONTRACT_ADDRESS = Web3.to_checksum_address("0x2bebf9eF4d3F694B47525d8C26B3F6995DE6cEAA")
+RPC_URL = "https://mainnet.coti.io/rpc"
+CONTRACT_ADDRESS = Web3.to_checksum_address("0x5Bbe88FD68C97a745fFD76809DE5A8708B867d14")
 
 # Load your wallet's private key and address
 PRIVATE_KEY =  os.getenv("PRIVATE_KEY")
