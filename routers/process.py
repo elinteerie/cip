@@ -15,6 +15,7 @@ from sqlmodel import select
 from fastapi import Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func
 import time
 from utils import get_important_tx_details, get_latest_transaction
 from events import validate_asset_created_async, validate_asset_funded_async
@@ -72,19 +73,53 @@ async def up_all_plans(db: db_dependency, plan_id:int, user: dict= Depends(get_c
 
 
 @router.get("/trigger-types", response_model=List[str], status_code=status.HTTP_200_OK)
-async def get_trigger_types():
+async def get_trigger_types(db: db_dependency, user: dict= Depends(get_current_user)):
     """
     Get all available trigger types.
     """
+    user_id = user.get("id")
+    result = select(User).where(User.id == user_id)
+    existing_user = await db.execute(result)
+    existing_user = existing_user.scalars().first()
+
+    if existing_user.plan_id ==1:
+        return [TriggerTypeEnum.DUE_DATE.value]
+
+
     return [trigger.value for trigger in TriggerTypeEnum]
 
 
 
 @router.get("/asset-supported", response_model=List[str], status_code=status.HTTP_200_OK)
-async def get_trigger_types():
+async def get_trigger_types(db: db_dependency, user: dict= Depends(get_current_user)):
     """
     Get all available trigger types.
     """
+    user_id = user.get("id")
+    result = select(User).where(User.id == user_id)
+    existing_user = await db.execute(result)
+    existing_user = existing_user.scalars().first()
+
+    user_active_plan = existing_user.plan_id
+
+    print(user_active_plan)
+
+    stmt = select(Asset).where(
+    Asset.owner_id == user_id,
+    Asset.validated_created.is_(True),
+    Asset.validated_funds.is_(True)
+    )
+
+    result = await db.execute(stmt)
+    asset = result.first()
+
+    if user_active_plan ==1 and asset is not None:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="You have to upgrade")
+
+
+    print(asset)
+
+
     return [asset.value for asset in AssetTypeEnum]
 
 

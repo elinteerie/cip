@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     # Code to run on startup
     print("db created ")
     #create_db_and_tables()
-    threading.Thread(target=main, daemon=True).start()
+    #threading.Thread(target=main, daemon=True).start()
     await init_db()
     print("db updated")
     yield  # Your application runs during this yield

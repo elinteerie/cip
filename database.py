@@ -20,9 +20,7 @@ DB_URL = os.getenv('DB_URL')
 connect_arg= {"check_same_thread": False}
 
 
-DATABASE_URL = (
-    f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
+DATABASE_URL = (f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 engine = create_async_engine(DATABASE_URL)
 
