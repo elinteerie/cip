@@ -53,7 +53,7 @@ class User(SQLModel, table=True):
     role: RoleEnum = Field(nullable=True, default="user")
     hashed_password: str = Field(nullable=True)
     public_key: str = Field(nullable=True)
-    wallet_address: str = Field(nullable=True)
+    wallet_address: str = Field(nullable=True, unique=True)
     is_wallet_connected: bool = Field(default=False)
     connection_timestamp: datetime = Field(nullable=True)
     plan_id: Optional[int] = Field(default=None, foreign_key="plan.id")
