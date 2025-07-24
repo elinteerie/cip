@@ -26,4 +26,4 @@ COPY . /app/
 
 # Start the application
 #CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "jiggy.asgi:application"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--forwarded-allow-ips", "*", "--proxy-headers"]
