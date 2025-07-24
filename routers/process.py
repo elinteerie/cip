@@ -23,9 +23,6 @@ from events import validate_asset_created_async, validate_asset_funded_async
 
 
 
-
-
-
 router = APIRouter(prefix='/process',tags=['Plans And Triggers'])
 db_dependency = Annotated[AsyncSession, Depends(get_db)]
 
@@ -42,7 +39,6 @@ async def get_all_plans(db: db_dependency, user: dict= Depends(get_current_user)
     return {
         "plans": plans
     }
-
 
 
 @router.patch("/user-select-plan", status_code=status.HTTP_200_OK)
